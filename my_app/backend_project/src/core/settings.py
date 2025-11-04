@@ -25,7 +25,11 @@ SECRET_KEY = 'secret_key_demo'  # nosec B105
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '192.168.68.107',  # IP de votre VM Debian
+    '127.0.0.1',       # Loopback
+    'localhost',       # Loopback
+    ]
 
 
 # Application definition

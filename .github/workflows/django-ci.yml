@@ -42,7 +42,7 @@ jobs:
         cd my_app/backend_project
         # --count --select=E9,F63,F7,F82 --show-source --statistics
         # --exit-zero pour ne pas bloquer la démo (enlevez-le en prod)
-        poetry run flake8 src/ --count --show-source --statistics --exit-zero
+        poetry run flake8 src/ --count --show-source --statistics
 
     # 6. Lancement Bandit (Sécurité)
     - name: Run Bandit (Security)

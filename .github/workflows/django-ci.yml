@@ -1,0 +1,58 @@
+name: CI Backend Django
+
+# Se déclenche à chaque 'push' ou 'pull request' sur la branche 'master'
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    name: Tests, Linting & Sécurité
+    runs-on: ubuntu-latest  # Utilise un serveur Linux
+
+    steps:
+    # 1. Récupère le code du dépôt
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Installe Python
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' # Assurez-vous que cela correspond à votre version
+
+    # 3. Installe les outils (Poetry, Flake8, Bandit)
+    - name: Install tools
+      run: |
+        pip install poetry flake8 bandit
+        poetry config virtualenvs.in-project true
+
+    # 4. Installe les dépendances du projet
+    # (Note: le 'cd' est crucial à cause de votre structure de dossier)
+    - name: Install dependencies
+      run: |
+        cd my_app/backend_project
+        poetry install
+
+    # 5. Lancement Flake8 (Style)
+    - name: Run Flake8 (Linting)
+      run: |
+        cd my_app/backend_project
+        # --count --select=E9,F63,F7,F82 --show-source --statistics
+        # --exit-zero pour ne pas bloquer la démo (enlevez-le en prod)
+        poetry run flake8 src/ --count --show-source --statistics --exit-zero
+
+    # 6. Lancement Bandit (Sécurité)
+    - name: Run Bandit (Security)
+      run: |
+        cd my_app/backend_project
+        # --exit-zero pour ne pas bloquer la démo (enlevez-le en prod)
+        poetry run bandit -r src/ --exit-zero
+
+    # 7. Lancement des Tests Unitaires
+    - name: Run Unit Tests
+      run: |
+        cd my_app/backend_project
+        poetry run python src/manage.py test api

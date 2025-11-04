@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "backend-project"
+version = "0.1.0"
+description = ""
+authors = ["Florian Langlois <florianlanglois@gmail.com>"]
+readme = "README.md"
+packages = [{include = "backend_project", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+django = "^5.2.7"
+djangorestframework = "^3.16.1"
+commitizen = "^4.9.1"
+
+
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "poetry"
+update_changelog_on_bump = true
+major_version_zero = true
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -8,7 +8,7 @@ Committer : cz commit (dans le terminal PyCharm) et suivre l'assistant.
 
 Pousser : git push origin dev (via PyCharm ou terminal).
 
-(Plus tard) Merger : Fusionner dev dans master.
+(Plus2 tard) Merger : Fusionner dev dans master.
 
 (Plus2 tard) Versionner : cz bump (pour taguer la nouvelle version).
 

@@ -1,0 +1,86 @@
+# 🚀 3. Déploiement (Apache + mod_wsgi)
+
+# --- A. PRÉREQUIS SYSTÈME ---
+sudo apt update
+sudo apt install apache2 libapache2-mod-wsgi-py3 python3-venv
+# (Installer Poetry si absent)
+
+# --- B. COPIE ET PERMISSIONS (LE CŒUR) ---
+
+# 1. Copier les fichiers (ex: depuis le dossier home)
+sudo cp -r ~/my_app /var/www/
+
+# 2. Créer le groupe et y ajouter les utilisateurs
+sudo groupadd webmasters
+sudo usermod -aG webmasters vboxuser
+sudo usermod -aG webmasters www-data
+
+#
+# !! ACTION REQUISE !!
+# DÉCONNECTEZ-VOUS ET RECONNECTEZ-VOUS (ssh)
+# pour que 'vboxuser' soit bien dans le groupe 'webmasters'.
+#
+
+# 3. Définir la propriété (Utilisateur:Groupe)
+sudo chown -R vboxuser:webmasters /var/www/my_app
+
+# 4. Appliquer les permissions de base (Dossiers=775, Fichiers=664)
+sudo find /var/www/my_app -type d -exec chmod 775 {} \;
+sudo find /var/www/my_app -type f -exec chmod 664 {} \;
+
+# 5. Forcer l'héritage du groupe (setgid) sur TOUS les dossiers
+# (Correction 2 : s'applique à tous les dossiers, pas juste à la racine)
+sudo find /var/www/my_app -type d -exec chmod g+s {} \;
+
+# --- C. INSTALLATION BACKEND ---
+cd /var/www/my_app/backend_project
+
+# 1. Configurer Poetry pour créer le .venv dans le projet
+poetry config virtualenvs.in-project true
+
+# 2. Installer les dépendances
+# (Correction 3 : syntaxe moderne)
+poetry install --only main
+
+# 3. Activer le shell pour les commandes Django
+poetry shell
+
+# 4. Aller dans le dossier 'src' de Django
+cd src
+
+# 5. Préparer Django pour la prod
+python manage.py collectstatic --noinput
+python manage.py migrate
+
+# 6. Quitter le vEnv
+exit
+
+# --- D. INSTALLATION FRONTEND ---
+cd /var/www/my_app/frontend_app
+
+# 1. Installer les dépendances
+npm install
+
+# 2. Créer les fichiers statiques de production
+npm run build
+
+# --- E. CONFIGURATION ET DÉMARRAGE APACHE ---
+
+# 1. Créer le fichier de configuration
+sudo nano /etc/apache2/sites-available/my_app.conf
+# (Coller le contenu du fichier .conf ici)
+
+# 2. Activer le site et désactiver celui par défaut
+sudo a2dissite 000-default.conf
+sudo a2ensite my_app.conf
+
+# 3. Tester la syntaxe
+sudo apache2ctl configtest
+# (Doit afficher "Syntax OK")
+
+# 4. Redémarrer Apache pour tout appliquer
+sudo systemctl restart apache2
+
+# --- F. DÉBOGAGE ---
+# (En cas d'erreur 500, pour voir les erreurs Python)
+# sudo tail -f /var/log/apache2/my_app-error.log

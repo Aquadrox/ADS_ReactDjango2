@@ -10,5 +10,5 @@ Pousser : git push origin dev (via PyCharm ou terminal).
 
 (Plus tard) Merger : Fusionner dev dans master.
 
-(Plus tard) Versionner : cz bump (pour taguer la nouvelle version).
+(Plus2 tard) Versionner : cz bump (pour taguer la nouvelle version).
 

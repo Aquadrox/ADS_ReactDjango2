@@ -1,0 +1,22 @@
+Copiez votre projet une deuxième fois : sudo cp -r /var/www/ADS_ReactDjango2 /var/www/my_app_blue sudo cp -r /var/www/ADS_ReactDjango2 /var/www/my_app_green
+
+Créez le lien initial : ln -sfn /var/www/my_app_blue /var/www/my_app_live
+
+Mettez à jour votre my_app.conf pour qu'il pointe vers /var/www/my_app_live/my_app/... (et non /var/www/ADS_ReactDjango2/my_app/...)
+
+# 3. Définir la propriété (Utilisateur:Groupe)
+sudo chown -R vboxuser:webmasters /var/www/my_app_blue
+sudo chown -R vboxuser:webmasters /var/www/my_app_green
+
+# 4. Appliquer les permissions de base (Dossiers=775, Fichiers=664)
+sudo find /var/www/my_app_blue -type d -exec chmod 775 {} \;
+sudo find /var/www/my_app_blue -type f -exec chmod 664 {} \;
+sudo find /var/www/my_app_green -type d -exec chmod 775 {} \;
+sudo find /var/www/my_app_green -type f -exec chmod 664 {} \;
+
+# (Correction 2 : s'applique à tous les dossiers, pas juste à la racine)
+sudo find /var/www/my_app_blue -type d -exec chmod g+s {} \;
+sudo find /var/www/my_app_green -type d -exec chmod g+s {} \;
+
+sudo nano /etc/apache2/sites-available/my_app.conf
+/var/www/my_app_live/my_app/

@@ -1,73 +1,83 @@
 #!/bin/bash
-
-# ===================================================================
-# SCRIP DE MISE À JOUR v3 (Robuste)
-#
-# Utilise 'git reset --hard' pour forcer la synchronisation et
-# éviter les erreurs de "branches divergentes".
-#
-# DOIT ÊTRE EXÉCUTÉ PAR L'UTILISATEUR PROPRIÉTAIRE (ex: 'vboxuser')
-# ===================================================================
-
-# Arrête le script si une commande échoue
-set -e
+set -e # Arrête le script si une commande échoue
 
 # --- Configuration ---
-REPO_ROOT="/var/www/ADS_ReactDjango2"
-BACKEND_DIR="$REPO_ROOT/my_app/backend_project"
-FRONTEND_DIR="$REPO_ROOT/my_app/frontend_app"
-# La branche que vous voulez déployer
+BLUE_PATH="/var/www/my_app_blue"
+GREEN_PATH="/var/www/my_app_green"
+LIVE_SYMLINK="/var/www/my_app_live"
 GIT_BRANCH="master"
+PROJECT_SUBDIR="my_app" # Le sous-dossier de votre projet dans Git
 
-# --- Fonctions d'aide ---
-msg_info() {
-    echo -e "\n\e[34m--- $1 ---\e[0m"
-}
-msg_success() {
-    echo -e "\e[32m✅ $1\e[0m"
-}
+echo "--- Démarrage du déploiement Blue/Green ---"
 
-# --- 0. Préparation de l'environnement ---
-export PATH="$HOME/.local/bin:$PATH"
+# --- 1. DÉTERMINER LES RÔLES (Le Garde-Fou) ---
+CURRENT_LIVE_PATH=$(readlink -f "$LIVE_SYMLINK")
+IDLE_ENV_PATH=""
+LIVE_ENV_NAME=""
+IDLE_ENV_NAME=""
 
-msg_info "Démarrage de la mise à jour..."
+if [ "$CURRENT_LIVE_PATH" == "$BLUE_PATH" ]; then
+    LIVE_ENV_NAME="BLUE"
+    IDLE_ENV_NAME="GREEN"
+    IDLE_ENV_PATH="$GREEN_PATH"
+else
+    LIVE_ENV_NAME="GREEN"
+    IDLE_ENV_NAME="BLUE"
+    IDLE_ENV_PATH="$BLUE_PATH"
+fi
 
-# --- 0.5. Préparation SSH ---
-msg_info "0.5/5: Vérification de l'hôte SSH GitHub..."
-mkdir -p "$HOME/.ssh"
-ssh-keyscan github.com >> "$HOME/.ssh/known_hosts"
+echo "Environnement LIVE actuel : $LIVE_ENV_NAME ($CURRENT_LIVE_PATH)"
+echo "Environnement IDLE (cible) : $IDLE_ENV_NAME ($IDLE_ENV_PATH)"
 
-# --- 1. Récupération du code (Méthode robuste) ---
-msg_info "1/5: Récupération des mises à jour de GitHub (fetch & reset)..."
-cd "$REPO_ROOT"
-# Étape 1: Télécharge les dernières infos de GitHub
+
+# --- 2. DÉPLOYER SUR L'ENVIRONNEMENT INACTIF ---
+echo "--- Déploiement sur $IDLE_ENV_NAME ---"
+cd "$IDLE_ENV_PATH"
+
+echo "[1/5] Récupération des mises à jour de GitHub (fetch & reset)..."
 git fetch origin
-# Étape 2: Force la branche locale à correspondre à celle de GitHub
-# Cela supprime toutes les modifications locales !
 git reset --hard "origin/$GIT_BRANCH"
 
-msg_success "Le code est maintenant synchronisé avec $GIT_BRANCH."
-
-# --- 2. Mise à jour du Backend ---
-msg_info "2/5: Mise à jour des dépendances Backend (poetry install)..."
-cd "$BACKEND_DIR"
+echo "[2/5] Installation des dépendances Backend (Poetry)..."
+cd "$IDLE_ENV_PATH/$PROJECT_SUBDIR/backend_project"
 poetry install --only main
 
-msg_info "3/5: Application des migrations de la BDD (migrate)..."
+echo "[3/5] Exécution des migrations Django..."
 poetry run python src/manage.py migrate
 
-msg_info "4/5: Collecte des fichiers statiques (collectstatic)..."
-poetry run python src/manage.py collectstatic --noinput
-
-# --- 3. Mise à jour du Frontend ---
-msg_info "5/5: Reconstruction du Frontend (npm install & build)..."
-cd "$FRONTEND_DIR"
+echo "[4.A/5] Installation Frontend (npm)..."
+cd "$IDLE_ENV_PATH/$PROJECT_SUBDIR/frontend_app"
 npm install
+
+# --- NOUVELLE ÉTAPE : CORRECTION DES PERMISSIONS ---
+echo "[4.B/5] Rétablissement des permissions d'exécution..."
+if [ -d "$IDLE_ENV_PATH/$PROJECT_SUBDIR/frontend_app/node_modules/.bin" ]; then
+    chmod +x "$IDLE_ENV_PATH/$PROJECT_SUBDIR/frontend_app/node_modules/.bin/"*
+    echo "Permissions pour node_modules/.bin corrigées."
+else
+    echo "AVERTISSEMENT: Dossier node_modules/.bin introuvable."
+fi
+# --------------------------------------------------
+
+echo "[4.C/5] Build Frontend (npm run build)..."
+# Cette commande va maintenant fonctionner
 npm run build
 
-# --- 4. Redémarrage de l'application ---
-msg_info "Redémarrage de l'application Django (touch wsgi.py)..."
-touch "$BACKEND_DIR/src/core/wsgi.py"
+echo "--- Déploiement sur $IDLE_ENV_NAME terminé. ---"
 
-msg_success "Mise à jour terminée avec succès !"
+# --- 3. (OPTIONNEL) TESTS DE SANTÉ (Health Check) ---
+echo "Health Check réussi (simulé)."
+
+
+# --- 4. LA BASCULE (ATOMIQUE) ---
+echo "--- Bascule du trafic : $LIVE_ENV_NAME -> $IDLE_ENV_NAME ---"
+ln -sfn "$IDLE_ENV_PATH" "$LIVE_SYMLINK"
+
+
+# --- 5. RECHARGEMENT DU BACKEND (WSGI) ---
+echo "Rechargement du serveur WSGI..."
+touch "$LIVE_SYMLINK/$PROJECT_SUBDIR/backend_project/src/core/wsgi.py"
+
+echo "--- Déploiement Blue/Green terminé avec succès. ---"
+echo "Le nouvel environnement LIVE est : $IDLE_ENV_NAME"
 

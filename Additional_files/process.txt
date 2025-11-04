@@ -28,7 +28,7 @@ sudo chown -R vboxuser:webmasters /var/www/my_app
 sudo find /var/www/my_app -type d -exec chmod 775 {} \;
 sudo find /var/www/my_app -type f -exec chmod 664 {} \;
 
-# 5. Forcer l'héritage du groupe (setgid) sur TOUS les dossiers
+# 5. FSorcer l'héritage du groupe (setgid) sur TOUS les dossiers
 # (Correction 2 : s'applique à tous les dossiers, pas juste à la racine)
 sudo find /var/www/my_app -type d -exec chmod g+s {} \;
 

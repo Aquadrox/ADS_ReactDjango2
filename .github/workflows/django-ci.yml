@@ -21,7 +21,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13' # Assurez-vous que cela correspond à votre version
+        python-version: '3.11' # Assurez-vous que cela correspond à votre version
 
     # 3. Installe les outils (Poetry, Flake8, Bandit)
     - name: Install tools
@@ -41,18 +41,19 @@ jobs:
       run: |
         cd my_app/backend_project
         # --count --select=E9,F63,F7,F82 --show-source --statistics
-        # --exit-zero pour ne pas bloquer la démo (enlevez-le en prod)
+        # J'ai retiré '--exit-zero' pour que Flake8 cause un échec du build s'il trouve des erreurs
         poetry run flake8 src/ --count --show-source --statistics
 
     # 6. Lancement Bandit (Sécurité)
     - name: Run Bandit (Security)
       run: |
         cd my_app/backend_project
-        # --exit-zero pour ne pas bloquer la démo (enlevez-le en prod)
-        poetry run bandit -r src/ --exit-zero
+        # J'ai retiré '--exit-zero' pour que Bandit cause un échec du build s'il trouve des erreurs
+        poetry run bandit -r src/
 
     # 7. Lancement des Tests Unitaires
     - name: Run Unit Tests
       run: |
         cd my_app/backend_project
         poetry run python src/manage.py test api
+

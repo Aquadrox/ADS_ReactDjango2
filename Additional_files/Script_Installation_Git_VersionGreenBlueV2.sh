@@ -81,7 +81,7 @@ APACHE_CONFIG=$(cat <<EOF
         Options +FollowSymLinks
         Require all granted
     </Directory>
-    WSGIDaemonProcess django_app python-home=$LIVE_SYMLINK/$PROJECT_SUBDIR/backend_project/.venv
+    WSGIDaemonProcess django_app python-home=$LIVE_SYMLINK/$PROJECT_SUBDIR/backend_project/.venv python-path=$LIVE_SYMLINK/$PROJECT_SUBDIR/backend_project/src
     WSGIProcessGroup django_app
     WSGIScriptAlias /api $LIVE_SYMLINK/$PROJECT_SUBDIR/backend_project/src/core/wsgi.py process-group=django_app application-group=%{GLOBAL}
     <Directory $LIVE_SYMLINK/$PROJECT_SUBDIR/backend_project/src/core>

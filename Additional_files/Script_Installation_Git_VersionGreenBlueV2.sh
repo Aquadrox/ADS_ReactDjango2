@@ -14,7 +14,7 @@ GREEN_PATH="/var/www/my_app_green"
 LIVE_SYMLINK="/var/www/my_app_live"
 
 # --- Configuration du Logging ---
-LOG_FILE="/var/log/my_app_deployment.log"
+LOG_FILE="my_app_deployment.log"
 SCRIPT_NAME="INSTALL"
 # S'assure que le fichier log existe et est inscriptible
 touch "$LOG_FILE"

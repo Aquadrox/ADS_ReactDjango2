@@ -8,7 +8,7 @@ LIVE_SYMLINK="/var/www/my_app_live"
 PROJECT_SUBDIR="my_app"
 
 # --- Configuration du Logging ---
-LOG_FILE="/var/log/my_app_deployment.log"
+LOG_FILE="rollback.log"
 SCRIPT_NAME="ROLLBACK"
 
 # --- Fonctions de Logging ---

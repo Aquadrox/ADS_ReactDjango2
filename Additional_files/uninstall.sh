@@ -11,7 +11,7 @@ LIVE_SYMLINK="/var/www/my_app_live"
 REPO_ROOT_LEGACY="/var/www/ADS_ReactDjango2"
 
 # --- Configuration du Logging ---
-LOG_FILE="/var/log/my_app_deployment.log"
+LOG_FILE="uninstall.log"
 SCRIPT_NAME="UNINSTALL"
 # S'assure que le fichier log existe et est inscriptible
 touch "$LOG_FILE"

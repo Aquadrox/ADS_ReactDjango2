@@ -1,6 +1,5 @@
 name: CI Backend Django
 
-# Se déclenche à chaque 'push' ou 'pull request' sur la branche 'master'
 on:
   push:
     branches: [ master ]
@@ -8,52 +7,104 @@ on:
     branches: [ master ]
 
 jobs:
-  test:
-    name: Tests, Linting & Sécurité
-    runs-on: ubuntu-latest  # Utilise un serveur Linux
+  # --- Job 1: Linting (Flake8) ---
+  lint:
+    name: 🎨 Linting (Flake8)
+    runs-on: ubuntu-latest
+
+    # Définit le dossier de travail pour toutes les commandes 'run' de ce job
+    defaults:
+      run:
+        working-directory: my_app/backend_project
 
     steps:
-    # 1. Récupère le code du dépôt
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. Installe Python
-    - name: Set up Python
+    # Utilise le cache intégré de setup-python pour Poetry
+    - name: Set up Python 3.13 with cache
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13' # Assurez-vous que cela correspond à votre version
+        python-version: '3.13'
+        cache: 'poetry'
+        # Spécifie où trouver le fichier de lock pour la clé de cache
+        cache-dependency-path: 'my_app/backend_project/poetry.lock'
 
-    # 3. Installe les outils (Poetry, Flake8, Bandit)
+    - name: Install tools
+      run: |
+        # Pas besoin de 'cd' ici
+        pip install poetry flake8 bandit
+        poetry config virtualenvs.in-project true
+
+    - name: Install dependencies
+      run: poetry install --only main --sync
+
+    - name: Run Flake8 (Linting)
+      run: poetry run flake8 src/ --count --show-source --statistics
+
+  # --- Job 2: Sécurité (Bandit) ---
+  security:
+    name: 🛡️ Sécurité (Bandit)
+    runs-on: ubuntu-latest
+
+    # Définit le dossier de travail pour toutes les commandes 'run' de ce job
+    defaults:
+      run:
+        working-directory: my_app/backend_project
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Le cache sera réutilisé ici si la clé (poetry.lock) n'a pas changé
+    - name: Set up Python 3.13 with cache
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'poetry'
+        cache-dependency-path: 'my_app/backend_project/poetry.lock'
+
     - name: Install tools
       run: |
         pip install poetry flake8 bandit
         poetry config virtualenvs.in-project true
 
-    # 4. Installe les dépendances du projet
-    # (Note: le 'cd' est crucial à cause de votre structure de dossier)
     - name: Install dependencies
-      run: |
-        cd my_app/backend_project
-        poetry install
+      run: poetry install --only main --sync
 
-    # 5. Lancement Flake8 (Style)
-    - name: Run Flake8 (Linting)
-      run: |
-        cd my_app/backend_project
-        # --count --select=E9,F63,F7,F82 --show-source --statistics
-        # J'ai retiré '--exit-zero' pour que Flake8 cause un échec du build s'il trouve des erreurs
-        poetry run flake8 src/ --count --show-source --statistics
-
-    # 6. Lancement Bandit (Sécurité)
     - name: Run Bandit (Security)
-      run: |
-        cd my_app/backend_project
-        # J'ai retiré '--exit-zero' pour que Bandit cause un échec du build s'il trouve des erreurs
-        poetry run bandit -r src/
+      run: poetry run bandit -r src/
 
-    # 7. Lancement des Tests Unitaires
+  # --- Job 3: Tests Unitaires (Pytest/Django) ---
+  unit-test:
+    name: 🧪 Tests Unitaires
+    runs-on: ubuntu-latest
+
+    # Définit le dossier de travail pour toutes les commandes 'run' de ce job
+    defaults:
+      run:
+        working-directory: my_app/backend_project
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.13 with cache
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'poetry'
+        cache-dependency-path: 'my_app/backend_project/poetry.lock'
+
+    - name: Install tools
+      run: |
+        pip install poetry flake8 bandit
+        poetry config virtualenvs.in-project true
+
+    - name: Install dependencies
+      # Note: On installe TOUTES les dépendances ici (y compris 'dev' si les tests en ont besoin)
+      # Si vos tests n'ont pas besoin de 'dev', utilisez '--only main'
+      run: poetry install --sync
+
     - name: Run Unit Tests
-      run: |
-        cd my_app/backend_project
-        poetry run python src/manage.py test api
-
+      run: poetry run python src/manage.py test api

@@ -1,0 +1,75 @@
+# Fichier .gitlab-ci.yml (équivalent à votre django-ci.yml)
+
+# 1. Image Docker par défaut
+# Utilise une image Docker officielle Python 3.13,
+# ce qui remplace 'uses: actions/setup-python@v5'
+default:
+  image: python:3.13
+
+# 2. Définition des "Stages"
+# Les jobs d'un même stage s'exécutent en parallèle.
+stages:
+  - test
+
+# 3. Définition des variables globales
+# Évite de répéter le chemin vers votre projet
+variables:
+  BACKEND_DIR: "my_app/backend_project"
+
+# 4. Définition des règles de workflow
+# Équivalent de la section 'on:' de GitHub.
+# Ceci exécute le pipeline pour les push/PR sur 'master'.
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+
+# 5. Modèle de Job (pour ne pas se répéter - DRY)
+# Ce job "caché" (commençant par un '.') sert de base
+# pour les autres jobs. Il gère toute l'installation.
+.test-template:
+  stage: test
+  # 'before_script' s'exécute avant le 'script' principal
+  before_script:
+    - echo "--- Installation des outils (Poetry, Flake8, Bandit) ---"
+    - pip install poetry flake8 bandit
+    - poetry config virtualenvs.in-project true
+
+    # Se déplace dans le dossier du projet
+    - cd $BACKEND_DIR
+
+    - echo "--- Installation des dépendances (Poetry) ---"
+    - poetry install
+
+  # Mise en cache des dépendances pour accélérer les prochains pipelines
+  cache:
+    # La clé de cache est basée sur le fichier de lock
+    key:
+      files:
+        - $BACKEND_DIR/poetry.lock
+    # On met en cache le dossier .venv créé par Poetry
+    paths:
+      - $BACKEND_DIR/.venv
+
+# 6. Jobs concrets
+# Ces jobs héritent du modèle '.test-template' et n'exécutent
+# que la commande qui leur est propre. Le 'cd' du template
+# est conservé, donc ils s'exécutent au bon endroit.
+
+lint:
+  extends: .test-template
+  script:
+    - echo "--- Lancement Flake8 (Style) ---"
+    - poetry run flake8 src/ --count --show-source --statistics
+
+security:
+  extends: .test-template
+  script:
+    - echo "--- Lancement Bandit (Sécurité) ---"
+    - poetry run bandit -r src/
+
+unit-test:
+  extends: .test-template
+  script:
+    - echo "--- Lancement des Tests Unitaires ---"
+    - poetry run python src/manage.py test api

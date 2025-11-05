@@ -9,7 +9,7 @@ GIT_BRANCH="master"
 PROJECT_SUBDIR="my_app"
 
 # --- Configuration du Logging ---
-LOG_FILE="/var/log/my_app_deployment.log"
+LOG_FILE="update.log"
 SCRIPT_NAME="UPDATE"
 
 # --- Fonctions de Logging ---

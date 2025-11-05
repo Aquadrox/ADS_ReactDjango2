@@ -2,3 +2,4 @@ __pycache__
 node_modules
 .venv
 Additional_files/token.txt
+my_app/backend_project/src/local.txt

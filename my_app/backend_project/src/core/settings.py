@@ -23,7 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'secret_key_demo'  # nosec B105
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if os.path.exists(os.path.join(BASE_DIR, 'local.txt')):
+    print("Mode Developement")
+    DEBUG = True
+else:
+    print("Mode Production")
+    DEBUG = False
 
 ALLOWED_HOSTS = [
     '192.168.68.107',  # IP de votre VM Debian

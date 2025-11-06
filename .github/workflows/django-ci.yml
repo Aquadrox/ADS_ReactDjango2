@@ -1,6 +1,6 @@
-name: CI Backend Django
+name: CI & Déploiement Backend Django
 
-# Se déclenche à chaque 'push' ou 'pull request' sur la branche 'master'
+# Se déclenche sur push ou PR vers master
 on:
   push:
     branches: [ master ]
@@ -8,52 +8,69 @@ on:
     branches: [ master ]
 
 jobs:
+  # ======================================================
+  # JOB 1: TESTS (s'exécute dans le Cloud GitHub)
+  # ======================================================
   test:
     name: Tests, Linting & Sécurité
-    runs-on: ubuntu-latest  # Utilise un serveur Linux
+    runs-on: ubuntu-latest # <- Le test tourne dans le cloud
+
+    defaults:
+      run:
+        working-directory: ./my_app/backend_project
 
     steps:
-    # 1. Récupère le code du dépôt
-    - name: Checkout code
+    - name: 1. Récupère le code
       uses: actions/checkout@v4
 
-    # 2. Installe Python
-    - name: Set up Python
+    - name: 2. Installe Python et cache Poetry
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13' # Assurez-vous que cela correspond à votre version
+        python-version: '3.13'
+        cache: 'poetry'
+        cache-dependency-path: 'my_app/backend_project/poetry.lock'
 
-    # 3. Installe les outils (Poetry, Flake8, Bandit)
-    - name: Install tools
+    - name: 3. Installe les outils et dépendances
       run: |
-        pip install poetry flake8 bandit
+        pip install poetry
         poetry config virtualenvs.in-project true
+        poetry install --no-root # --no-root est plus propre pour le CI
 
-    # 4. Installe les dépendances du projet
-    # (Note: le 'cd' est crucial à cause de votre structure de dossier)
-    - name: Install dependencies
+    - name: 4. Lancement Flake8 (Linting)
       run: |
-        cd my_app/backend_project
-        poetry install
-
-    # 5. Lancement Flake8 (Style)
-    - name: Run Flake8 (Linting)
-      run: |
-        cd my_app/backend_project
-        # --count --select=E9,F63,F7,F82 --show-source --statistics
-        # J'ai retiré '--exit-zero' pour que Flake8 cause un échec du build s'il trouve des erreurs
         poetry run flake8 src/ --count --show-source --statistics
 
-    # 6. Lancement Bandit (Sécurité)
-    - name: Run Bandit (Security)
+    - name: 5. Lancement Bandit (Sécurité)
       run: |
-        cd my_app/backend_project
-        # J'ai retiré '--exit-zero' pour que Bandit cause un échec du build s'il trouve des erreurs
         poetry run bandit -r src/
 
-    # 7. Lancement des Tests Unitaires
-    - name: Run Unit Tests
+    - name: 6. Lancement des Tests Unitaires
       run: |
-        cd my_app/backend_project
         poetry run python src/manage.py test api
 
+  # ======================================================
+  # JOB 2: DÉPLOIEMENT (s'exécute sur VOTRE VM)
+  # ======================================================
+  deploy:
+    name: Déployer en Production
+
+    # 1. Ne s'exécute que si les tests ont réussi
+    needs: test
+
+    # 2. Ne s'exécute que sur PUSH vers 'master' (pas les PR)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    # 3. Cible l'environnement "production"
+    # C'est ce qui déclenche l'approbation MANUELLE que vous avez configurée
+    environment:
+      name: production
+
+    # 4. LE POINT MAGIQUE : s'exécute sur votre VM
+    runs-on: self-hosted
+
+    steps:
+      # 5. L'UNIQUE ÉTAPE : Exécute le script localement
+      - name: Lancement du script de mise à jour Blue/Green
+        run: |
+          echo "--- Lancement du script Update.sh (situé sur le runner) ---"
+          /var/www/scripts/Update.sh
